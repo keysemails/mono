@@ -1,0 +1,59 @@
+#!/bin/bash
+
+# Opens a new Claude session with arguments and a prefilled prompt explaining how to handle them
+
+PREFILL='I will shortly provide you with some arguments.
+Here are what they could loosely mean:
+
+@(some file name)
+may be a file path
+it may be the name of a file somewhere in the dir
+it may be missspelled
+it may exist in a place not accessible
+try to resolve the argument via the terminal, with the less costly trys first
+tell the user that you could not find the file with approach x and will now try y
+if multiple options exist in the end present as options to the user
+and ask for a selection before continuing
+
+p(some prompt that can contain whitespace)
+will contain instructions or questions
+
+___
+
+{{
+files may contain further prompts in these double brackets
+{{
+which me be nested
+}}
+{{2020-12-12 12:20
+which may be tagged by date
+}}
+}}
+if nothing else is mentioned in combination with @file
+process those prompts that are not yet tagged with a date
+unless asked to include certain date ranges.
+after processing, unless stated otherwise, tag the current date (use the terminal to get an accurate timestamp)
+
+___
+if processing a file (e.g. resolved fia @file) <file-name>
+create a folder <file-name>/ if it not already exists
+then move the <file-name> into that folder
+and create a new file in its stead where you make requested changes
+
+if processed files come in this naming scheme:
+prefix - yyyy-mm-dd-hhmm - claim.md
+
+then update the date (and potentially claim) for the new file you create in its stead
+
+make sure to rename the name of the version folder as well
+to match the new file
+'
+
+
+
+echo "Enter arguments:"
+read -r ARGS
+
+claude --resume --prefill "$PREFILL
+
+Arguments: $ARGS"
