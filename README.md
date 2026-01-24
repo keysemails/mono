@@ -1,271 +1,234 @@
-# mono
+# A Simple Claude Code Memory System for Your Projects
 
-A personal knowledge management system designed for Claude Code. Uses flat file organization, wiki-style linking, and embedded prompts to create an evolving knowledge base that persists across AI sessions.
+I have `/memory` folders for all my projects to `externalise` into.
 
-## Why mono?
+No matter the project, i want claude code to accumulate context for future use. Always.
 
-AI coding assistants forget everything between sessions. Every conversation starts fresh - you re-explain your codebase, re-establish conventions, re-discover the same insights.
+Instead of letting insights, decisions, or learnings stay implicit and get lost over time, just persist everything to markdown files.
 
-mono solves this by creating a persistent knowledge layer:
-- **Memory files** capture decisions, learnings, and context
-- **Skills** (slash commands) encode workflows you'd otherwise repeat manually
-- **Wiki links** connect ideas so Claude can follow threads
-- **Session exports** preserve conversations for later reflection
+With this, ephemeral clues from prior conversations easily persist across sessions, allowing future claude instances to build on past work even more. 
 
-The result: each session builds on previous work instead of starting over.
+For the human in the loop this is obviously also very helpful, and can even give new surfaces to work on.
 
-## Project Structure
+## Knowledge Capture as a workflow automation
 
-**mono is designed to be used from its root folder.** Your subprojects (other git repos, coding projects, etc.) live in the `/repo` subfolder:
+All this should happen naturally, without you having to worry about it.
+
+The system is biased toward capture over curation.
+Reconstructing "damn i think we had this a few sessions ago" is much harder than "well i dont need any of this".
+Better yet, keep it via git and you can even go back to those deleted parts if needed.
+
+`mono` is a persistent knowledge layer that sits above your projects.
+you work from within `mono`, having your actual projects in a `repo/` subfolder.
+
+With things like `/change-project` or `/default-project` you can tell claude to focus on a specific project.
+It then auto-handles feature branches, git commits per action and the `/memory` folder automatically (in the scope of the sub repo), while you direct claude to do the actual work at the same time.
+
+If you notice that something in the session did not meet your expectations, you can e.g. use `/toclaude` to update the workflow to your liking.
+This can either be project specific settings that `mono` should honour, or config changes in `mono` itself.
+
+(Note that sub-project integration and local claude rule conflict resolution is not perfect yet. Im still playing around with it a lot, but its good enough to play with)
+
+## Types of Memory files and prefixes
+Here are some of the files I have in my `/memory` (both in `mono`, and in other `repo/`s)
+
+### Dated files (prefix - yyyy-mm-dd-hhmm - claim.md):
+
+Many types of files are snapshots that help externalise things to act upon in the moment.
+They can be used as basis for new sessions, and also capture decisions.
+
+- `architecture` - Overview of a coding project currents state
+- `bug` - Bug reports
+- `codereview` - Ranked review of the current code base with suggestions on what to do next
+- `consistency` - Notice unclosed todos, open tasks, content that is inconsitent between files
+- `drift` - Compares documented intent to the current state
+- `goal` - This should really be named more like problem and preferences
+- `next` - Collects what tasks could be done next
+- `plan` - Implementation plans for complex changes, tracking progress and learnings (can use to reflect or act upon in a later step)
+- `proposal` - Suggested changes before making a plan
+- `reflect` - Extracted learnings, tasks, incoherences
+- `research` - Collected websearch or file search results
+- `session` - Chat exports (from `/tomd` or `/done`)
+- `spec` - Specifications as part of plans (underused)
+- `todo` - Actionable tasks
+- `solved` - Completed todos (renamed from todo)
+- `videoplan` - Scene-by-scene video structure (playing around with a manim skill)
+
+### Non-Dated Files (prefix - claim.md):
+
+- `c` - Concepts as prose claims
+- `idea` - Ideas and brainstorming
+- `learning` - Insights from reflection
+- `meta` - System/workflow files
+- `moc` - Maps of Content (hierarchy indexes, underexplored still)
+- `problem` - Problems identified
+- `question` - Questions to explore
+
+
+## Skills/Commands
+
+### Sprint/Planning Workflow:
+
+- `/sprint-start` - Orchestrates goal -> proposal -> spec -> plan creation and approval
+- `/goal` - Captures problem, desired outcome, and preferences
+- `/proposal` - Explore approaches and decision points for a goal
+- `/spec` - Define requirements, constraints, and open questions
+- `/plan-continue` - Resume work on an existing plan
+
+### Analysis/Snapshots:
+
+- `/reflect` - Analyse files, extract learnings, tasks, incoherences, questions
+- `/consistency` - Check project structure for inconsistencies and violations
+- `/drift` - Detect divergence between documented intent and current state
+- `/architecture` - Create codebase structure snapshots
+- `/code-review` - Code quality analysis with severity ratings
+- `/next` - Collect, store and present things to work on next
+
+### Knowledge/Research:
+
+- `/research` - Research and document topics via websearch or from local sources
+- `/todo` - Quickly create todo files from input or extract from files
+
+### Sub-Project Management:
+
+- `/detect-project` - Check which project we should be wokring on (git and memory management)
+- `/change-project` - Switch active project
+- `/default-project` - Set default project (.PROJECT file)
+
+### Export/Conversion:
+
+- `/done` - End session with export (`session-`) and offer to merge (can follow with `/reflect` manually)
+- `/tomd` - Export conversation to markdown
+- `/toscript` - Export code blocks to script file (untested)
+- `/toclaude` - Extract learnings to CLAUDE.md etc
+- `/tomanim` - Convert markdown to manim-animated video (wip)
+
+### Utility:
+
+- `/process` - Process in-file prompts ({ ... } blocks)
+- `/human-sort` - Reorganize human.md sections without modifying content
+- `/showrules` - Toggle citation of rules before each response (should be debug tool but is broken rn)
+- `/toskill` - Create a new skill from conversation
+
+## The Structure
 
 ```
-mono/                     # ← Work from here
-  memory/                 # Meta-level knowledge, conventions, session exports
-  CLAUDE.md               # Behavior rules
-  .claude/commands/       # Skills (slash commands)
-  repo/                   # ← Your subprojects go here
-    project-a/            # A separate git repo
-      .git/
-      memory/             # Project-specific knowledge
-      CLAUDE.md           # Project-specific rules
-    project-b/            # Another git repo
-      .git/
+mono/
+  memory/           # Knowledge that persists
+  .claude/commands/ # Your custom workflows (skills)
+  repo/             # Your actual projects live here
+    project-a/
+      .claude
+      memory/
+      src/
       ...
+    project-b/
 ```
 
-This structure allows:
-- **Unified context** - Claude reads mono's CLAUDE.md and memory/ regardless of which subproject you're working in
-- **Project isolation** - Each subproject has its own git history, memory, and optional CLAUDE.md overrides
-- **Skill inheritance** - Subprojects can have their own `.claude/commands/` while inheriting mono's skills
-- **Cross-project search** - Search across all repos from the mono root
 
-See [meta - subproject integration.md](memory/meta%20-%20subproject%20integration.md) for conflict handling between meta and subproject rules.
+### Flat files and wiki links
+`memory/` uses a flat file structure, no nested folders.
+Most of it works through `[[wiki links]]` that link to other documents.
+Its all just markdown files.
+(need to make much more use of MOCs etc)
 
-## Core Concepts
+### Working on sub projects
 
-### Flat File Hierarchy
-
-All files live at the root of `memory/` - no nested folders. Organization happens through **MOC (Map of Content)** files that link related documents together.
+Open e.g. VSCode in `mono/` and then use `/change-project` or `/default-project` to start working on the sub-repo.
 
 ```
-memory/
-  meta - file conventions.md
-  meta - git workflow.md
-  moc - research.md           # Links to research files
-  research - terrain heightmaps.md
-  session - 2026-01-23-1549 - improved export.md
+!!!
+you should probably test things out first, e.g. copy paste your git repo as new git repo, since mono uses git automatically
+
+once you are happy with the workflow (go ham on changing stuff),
+then you may want to give it a real shot.
+
+or better yet start with new toy projects to test this out.
 ```
 
-### Wiki Links
+## The Session Workflow
+(Example generated based on my `session - ` files)
 
-Files reference each other using `[[wiki-links]]`:
+When you start Claude Code, hooks automatically load:
+- `INIT.md` - Project instructions
+- `.PROJECT` - Default project context (if set)
 
-```markdown
-Follow the [[meta - git workflow]] for commits.
-See [[meta - prefixes]] for naming conventions.
-```
+**Claude's first question** (if no default project):
+> "Should I run collect-context for [detected project]?"
 
-### File Naming
-
-Files follow `prefix - claim.md` where the claim is written as readable prose.
-
-**Standard prefixes** (no date in filename):
-
-| Prefix | Purpose |
-|--------|---------|
-| `meta` | System/workflow documentation |
-| `c` | Concepts - claims as prose |
-| `idea` | Ideas and brainstorms |
-| `incoherence` | Contradictions or unclear areas found during reflection |
-| `learning` | Extracted insights from reflection |
-| `moc` | Maps of content (indexes) |
-| `problem` | Problems identified |
-| `question` | Questions to explore |
-| `research` | Research findings |
-| `spec` | Specifications |
-| `sprint` | Sprint plans |
-
-**Dated prefixes** (use `prefix - yyyy-mm-dd-hhmm - claim.md`):
-
-| Prefix | Purpose |
-|--------|---------|
-| `bug` | Bug reports |
-| `consistency` | Project consistency reports |
-| `goal` | Sprint/feature goals |
-| `next` | Actionable items snapshots |
-| `plan` | Task plans |
-| `reflect` | Extracted learnings from sessions |
-| `session` | Exported chat sessions |
-| `todo` | Individual tasks |
-
-See [meta - prefixes.md](memory/meta%20-%20prefixes.md) for the full list.
-
-### YAML Frontmatter
-
-Every file has metadata:
-
-```yaml
----
-created: 2026-01-23T13:15:00
-changed: 2026-01-23T16:08:11
-prior_commit: c8b5be9
----
-```
-
-## Skills (Slash Commands)
-
-Custom commands in `.claude/commands/`:
-
-| Command | Purpose |
-|---------|---------|
-| `/goal` | Create a goal file for a sprint or feature |
-| `/proposal` | Explore approaches with trade-offs before committing |
-| `/spec` | Create or update a requirements specification |
-| `/sprint-start` | Initialize a sprint: goal, spec, plan, then approval |
-| `/plan-continue` | Resume work on an existing incomplete plan |
-| `/process @file` | Process embedded `{{ }}` prompts in a file |
-| `/reflect @file` | Extract learnings, tasks, and questions from a file |
-| `/research` | Research topics into scannable knowledge documents |
-| `/todo` | Quick create todo files from input or extract from files |
-| `/next` | Show actionable items (todos, ideas, pending prompts) to decide what to work on |
-| `/consistency` | Check project for structural issues |
-| `/architecture` | Document codebase structure as-is |
-| `/code-review` | Full codebase quality analysis with severity ratings |
-| `/drift` | Compare documented intent vs current reality |
-| `/done` | End session - export, commit, and offer to merge branch |
-| `/detect-project` | Detect and select project context at session start |
-| `/change-project` | Switch active project context mid-session |
-| `/showrules` | Display relevant rules for a topic |
-| `/toclaude` | Update CLAUDE.md with new behaviors |
-| `/toskill` | Create a new skill command |
-| `/tomd` | Export current session to markdown |
-| `/toscript` | Export code from conversation to a script file |
-| `/tomanim` | Convert markdown files to manim-animated videos |
-| `/default-project` | Set persistent default project for session start |
-| `/human-sort` | Reorganize human notes file sections |
-
-## Sprint Workflow
-
-For non-trivial features, mono uses a structured planning flow:
-
-1. **`/goal`** - Capture the problem, desired outcome, and preferences
-2. **`/proposal`** - Explore approaches, identify trade-offs, get user decision
-3. **`/spec`** - Define requirements based on chosen approach
-4. **`/sprint-start`** - Orchestrate all three, then create an action plan
-
-This happens before any code is written. The plan file tracks progress and links to artifacts created during implementation.
-
-Use `/plan-continue` to resume work in a new session.
+This gathers recent changes and session history for context. (lots to improve on dynamic-context creation)
 
 ```
-goal → proposal → spec → plan → implement → reflect
+User: /consistency
+
+Claude: I'll generate a consistency report. Let me check the current branch first.
+
+[reads: git branch --show-current]
+
+I'm on main, so I need to create a task branch first.
+
+[runs: git checkout -b task/consistency-report]
+
+Now let me scan the memory directory...
+
+[reads multiple files, analyzes for issues]
+
+[creates: memory/consistency - 2026-01-24-0430 - 12 issues found.md]
+[commits the file]
+
+**Branch:** `task/consistency-report` (1 commit)
+- `6c433c9` Add consistency report: 12 issues found
+  - [consistency - 2026-01-24-0430 - 12 issues found.md](memory/...)
+
+**Summary:** Found 12 inconsistencies across 72 files.
+
+Which items would you like to address? (e.g., "1.1, 2.3")
 ```
 
-See [meta - coding project structure.md](memory/meta%20-%20coding%20project%20structure.md) for the complete workflow.
+```
+User: 2.1, 3
 
-## Embedded Prompts
+Claude: [fixes the selected items]
+[commits the fixes]
+[updates the consistency report with wiki links to results]
 
-Files can contain prompts for future processing:
+**Branch:** `task/consistency-report` (2 commits)
+- `6c433c9` Add consistency report
+- `60c62bb` Address consistency items 2.1 and 3.x
 
-```markdown
-{{
-Research how terrain heightmaps work
-}}
+Merge to main?
 ```
 
-Run `/process @file` to execute unprocessed prompts. After processing, they're tagged with timestamps to avoid re-processing.
-
-## Subproject Support
-
-Subprojects live in the `/repo` folder. Each can have their own `memory/`, `CLAUDE.md`, and `.claude/commands/`. The `sub-conflict-resolution/` folder tracks conflicts between meta-repo and subproject conventions - see the Project Structure section above for the full layout.
-
-## Git Workflow
-
-**One branch per task, one commit per action.** Claude handles this automatically - you don't need to manage git yourself.
-
-When work begins, Claude immediately creates a task branch:
-
 ```
-git checkout -b task/add-terrain-brushes
+User: /done
+
+Claude: [exports session to memory/session - 2026-01-24-0440 - consistency report and fixes.md]
+[commits the export]
+
+Merged to main. Session complete.
 ```
 
-Commit after each logical action - don't batch changes. This creates clear history and enables easy rollback.
 
-```
-task/add-terrain-brushes
- ├── commit: "Add terrain brush base class"
- ├── commit: "Add grass and rock brush implementations"
- └── commit: "Fix type errors from brush registry"
-```
 
-**Branch scope**: If work shifts to something unrelated to the current branch, ask whether to merge and create a new branch or continue. Don't silently mix unrelated work.
+## Try It
 
-Always merge with `--no-ff` to preserve branch structure in history.
+`mono` on GitHub:
+https://github.com/ltOgt/mono
 
-See [meta - git workflow.md](memory/meta%20-%20git%20workflow.md) and [meta - branch scope.md](memory/meta%20-%20branch%20scope.md) for full details.
 
-## Numbered Lists for Selection
 
-When Claude presents options, tasks, or items for you to act on, they use a numbered list pattern:
+### /research
+Consider running `/research` on `mono` itself to learn more.
+Then use `mono` to change `mono` to your liking.
 
-```markdown
-1 - Category A
-  - 1.1 - First item in category A
-  - 1.2 - Second item in category A
-2 - Category B
-  - 2.1 - First item in category B
-```
 
-Select items by number (e.g., "1.1" or "1.1, 2.1"). After acting on an item, Claude adds a nested wiki link showing the result:
+# Disclaimer
 
-```markdown
-1 - Category A
-  - 1.1 - First item
-    - [[resulting file or action taken]]
-```
+`mono` was developed organically over a few days, by using `mono`.
+Note that pretty much all of the docs in the repo are written by claude itself using mono.
 
-This creates a traceable record of what was presented and how it was resolved. Used by `/next`, `/consistency`, `/reflect`, and conflict resolution.
+# Future
+All of this barely scratches the surface and can be improved immensly.
+Next ill have to evolve `mono` by running `/research` on the mindblowing stuff @arscontexta has found out about @arscontexta using @arscontexta
 
-## Externalising Context
 
-Don't let insights stay only in conversation - persist them to files:
-
-| Content Type | Where to Put It |
-|--------------|-----------------|
-| Workflow changes | `CLAUDE.md` or meta files |
-| Learnings from sessions | Use `/reflect` to extract |
-| Reusable patterns | Create a skill in `.claude/commands/` |
-| Ideas for later | Create `idea - <claim>.md` |
-| Questions to explore | Create `question - <claim>.md` |
-
-Principle: When in doubt, externalise. It's easier to delete unnecessary files than recreate lost context.
-
-See [meta - externalise.md](memory/meta%20-%20externalise.md) for the full guide.
-
-## Behavior Rules (CLAUDE.md)
-
-[CLAUDE.md](CLAUDE.md) defines how Claude should behave in this project:
-
-- **Context loading** - Which files to read at session start
-- **Branch before editing** - Create task branch before any file changes
-- **Branch scope** - Ask before mixing unrelated work in one branch
-- **Plan mode** - Create plans before implementing non-trivial features
-- **Todos as actions** - Each todo is one commit, report after each
-- **Meta feedback loop** - When expectations are missed, update documentation
-- **Session end** - Run `/done` to export the session, commit, and merge the task branch
-
-CLAUDE.md contains inline summaries with `[[wiki-links]]` to detailed meta files. This allows quick reference while keeping full context accessible. Use `/consistency` to detect drift between inline content and linked files.
-
-## Getting Started
-
-**Prerequisites:** [Claude Code](https://docs.anthropic.com/en/docs/claude-code) (Anthropic's CLI tool for Claude)
-
-1. Clone this repo
-2. Add your projects to the `repo/` folder (they won't be committed to mono)
-3. Run `claude` from the mono root - Claude will read `CLAUDE.md` automatically
-4. Work from within mono, not from inside your subprojects
-
-**Typical session workflow** (git is automatic - you just work):
-1. Start work → Claude automatically creates a task branch
-2. Make changes → Claude commits after each logical action
-3. End session → Run `/done` to export, commit, and merge
